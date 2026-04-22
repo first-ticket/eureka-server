@@ -1,0 +1,23 @@
+server:
+  port: 8761
+
+spring:
+  application:
+    name: eureka-server
+
+eureka:
+  client:
+    register-with-eureka: false
+    fetch-registry: false
+    tls:
+      enabled: false   # Spring Cloud 2025.0.x TlsProperties 바인딩 버그 workaround
+  server:
+    wait-time-in-ms-when-sync-empty: 0   # 로컬 개발 시 대기 시간 제거
+  instance:
+    prefer-ip-address: true   # ECS Fargate 설정
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info

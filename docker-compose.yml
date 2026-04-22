@@ -1,0 +1,6 @@
+version: '3.8'
+services:
+  eureka-server:
+    build: .
+    ports:
+      - "8761:8761"
