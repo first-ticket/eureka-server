@@ -44,7 +44,7 @@ docker-compose up --build
 
 ```gradle
 ext {
-    set('springCloudVersion', "2025.0.1")
+    set('springCloudVersion', "2025.0.2")
 }
 
 dependencies {
