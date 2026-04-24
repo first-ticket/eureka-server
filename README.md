@@ -7,7 +7,7 @@ First Ticket MSA 프로젝트의 Service Discovery 서버입니다.
 
 - Java 21
 - Spring Boot 3.5.13
-- Spring Cloud 2025.0.1 (Netflix Eureka Server)
+- Spring Cloud 2025.0.2 (Netflix Eureka Server)
 
 ---
 
