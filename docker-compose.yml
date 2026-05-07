@@ -1,10 +1,26 @@
-version: '3.8'
+# eureka-server/docker-compose.yml
+version: '3.9'
+
 services:
   eureka-server:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: eureka-server
     ports:
       - "8761:8761"
+
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 40s
+      retries: 3
+
+    restart: unless-stopped
+
     networks:
       - first-ticket-network
 
