@@ -2,5 +2,13 @@ version: '3.8'
 services:
   eureka-server:
     build: .
+    container_name: eureka-server
     ports:
       - "8761:8761"
+    networks:
+      - first-ticket-network
+
+networks:
+  first-ticket-network:
+    external: true
+    name: first-ticket-network
