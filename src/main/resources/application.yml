@@ -1,3 +1,6 @@
+# eureka-server/application.yml - 모든 환경 공통 적용
+# 환경별 세팅은 local / prod로 오버라이딩
+
 server:
   port: 8761
 
@@ -5,19 +8,40 @@ spring:
   application:
     name: eureka-server
 
+  # Caffeine 캐시 - 모든 환경에서 동일하게 적용
+  cache:
+    type: caffeine
+    caffeine:
+      # maximumSize: 서비스 수 × 응답 포맷(압축/비압축) 기준 여유 있게 설정
+      # expireAfterWrite: response-cache-update-interval-ms(3초)보다 길어야 캐시 공백 없음
+      spec: maximumSize=500,expireAfterWrite=10s
+
 eureka:
   client:
     register-with-eureka: false
     fetch-registry: false
     tls:
-      enabled: false   # Spring Cloud 2025.0.x TlsProperties 바인딩 버그 workaround
+      enabled: false
+
   server:
-    wait-time-in-ms-when-sync-empty: 0   # 로컬 개발 시 대기 시간 제거
+    # 단일 Eureka 구성 - 피어 동기화 대기 불필요 (로컬/운영 모두 동일)
+    wait-time-in-ms-when-sync-empty: 0
+
+    # ReadOnly 캐시 갱신 주기: 기본 30초 -> 3초
+    # 서비스 등록/해제가 클라이언트에 빠르게 전파
+    response-cache-update-interval-ms: 3000
+
+    # ReadOnly 캐시 항목 자동 만료 시간 (초)
+    response-cache-auto-expiration-in-seconds: 180
+
+    # 만료 인스턴스(heartbeat 미수신) 정리 주기: 기본 60초 → 5초
+    eviction-interval-timer-in-ms: 5000
+
   instance:
-    prefer-ip-address: true   # ECS Fargate 설정
+    prefer-ip-address: true  # ECS Fargate - hostname 대신 IP로 Eureka에 등록
 
 management:
   endpoints:
     web:
       exposure:
-        include: health, info
+        include: health, info  # prometheus는 prod에서만 추가 (application-prod.yml)

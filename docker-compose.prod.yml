@@ -1,19 +1,18 @@
-# eureka-server/docker-compose.yml
-# 로컬 개발용 - 소스에서 직접 빌드
+# eureka-server/docker-compose.prod.yml
+# AWS 배포용 — ECR 이미지 pull
+# .env: EUREKA_IMAGE=123456789.dkr.ecr.ap-northeast-2.amazonaws.com/eureka-server:latest
 
-# 로컬 개발 (기본 파일 사용)
-# docker compose up -d
+# AWS/prod 배포 (파일 명시)
+# docker compose -f docker-compose.prod.yml up -d
 
 services:
   eureka-server:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ${EUREKA_IMAGE}
     container_name: eureka-server
     ports:
       - "8761:8761"
     environment:
-      SPRING_PROFILES_ACTIVE: dev
+      SPRING_PROFILES_ACTIVE: prod
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
       interval: 30s

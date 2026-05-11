@@ -1,0 +1,25 @@
+# eureka-server/application-prod.yml
+# 운영 환경 오버라이드
+# docker-compose.prod.yml의 SPRING_PROFILES_ACTIVE=prod 로 활성화
+
+eureka:
+  server:
+    # 자기 보존 모드 활성화
+    # 이유: 네트워크 파티션 발생 시 heartbeat가 일시적으로 줄어도 정상 인스턴스를 강제 제거하지 않음
+    enable-self-preservation: true
+
+    # heartbeat 수신 비율이 이 임계값 미만이면 자기 보존 모드 진입
+    # 0.85 = 전체 인스턴스의 85% 이상이 heartbeat를 보내야 정상으로 간주
+    renewal-percent-threshold: 0.85
+
+management:
+  endpoints:
+    web:
+      exposure:
+        # 운영에서 Prometheus가 /actuator/prometheus 엔드포인트를 스크래핑
+        include: health, info, prometheus
+
+logging:
+  level:
+    root: WARN                 # 외부 라이브러리 노이즈 제거
+    com.firstticket: INFO      # 자체 서비스 로그만 INFO 수준 유지
