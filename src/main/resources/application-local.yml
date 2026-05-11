@@ -1,0 +1,16 @@
+# eureka-server/application-local.yml
+# 로컬 개발 환경 오버라이드
+# IntelliJ Run Configuration 또는 docker-compose.yml의 SPRING_PROFILES_ACTIVE=local 로 활성화
+
+eureka:
+  server:
+    # 로컬에서는 자기 보존 모드 비활성화
+    # 이유: 개발 중 서비스를 자주 내렸다 올리면 heartbeat 감소 → 자기보존 모드 진입 → 죽은 인스턴스가 registry에 계속 남아 라우팅 오류 발생
+    # 운영과 달리 로컬은 네트워크 파티션 리스크가 없으므로 비활성화가 더 안정적
+    enable-self-preservation: false
+
+logging:
+  level:
+    org.springframework.cache: DEBUG   # Caffeine CacheManager 생성 로그 확인용
+    com.netflix.eureka: DEBUG
+    com.netflix.discovery: DEBUG
