@@ -1,120 +1,118 @@
 # eureka-server
 
-First Ticket MSA 프로젝트의 Service Discovery 서버입니다.
-모든 마이크로서비스의 인스턴스 정보를 등록·관리하며, API Gateway 및 각 서비스의 동적 라우팅 기반을 제공합니다.
-
-## 기술 스택
-
-- Java 21
-- Spring Boot 3.5.13
-- Spring Cloud 2025.0.2 (Netflix Eureka Server)
+First Ticket 프로젝트의 Service Discovery 서버.  
+모든 마이크로서비스의 인스턴스 정보를 등록·관리하며, API Gateway 및 각 서비스의 동적 라우팅 기반을 제공한다.
 
 ---
 
-## 로컬 실행 가이드
+## 📌 핵심 기능
 
-### 사전 요구사항
-- JDK 21
-- Docker Desktop
+각 마이크로서비스가 기동 시 Eureka 에 인스턴스를 등록하고, 서비스 간 호출 시 로드밸런서가 Eureka 에서 인스턴스 목록을 조회한다.
 
-### 방법 1 — Docker로 실행 (권장)
+```
+마이크로서비스 기동 → Eureka 등록 (IP:Port)
+                          ↓
+API Gateway lb://service-name → Eureka 조회 → 인스턴스 선택 → 라우팅
+```
+
+ECS Fargate 환경에서 컨테이너 IP 가 동적으로 할당되므로, 전 서비스에 `prefer-ip-address: true` 설정이 적용되어 있다.
+
+---
+
+## 🛠 기술 스택
+
+| 항목 | 기술 |
+| --- | --- |
+| 서비스 디스커버리 | Spring Cloud Netflix Eureka Server |
+| 인스턴스 캐시 | Caffeine (W-TinyLFU, 기본 Guava 대비 캐시 히트율 향상) |
+
+공통 기술 스택은 [공통 README](https://github.com/first-ticket/.github/blob/main/profile/README.md) 참고.
+
+---
+
+## 📁 패키지 구조
+
+```text
+com.firstticket.eurekaserver
+└── EurekaserverApplication.java    # @EnableEurekaServer
+```
+
+---
+
+## 🌐 포트
+
+| 환경  | 포트                 |
+| ----- | -------------------- |
+| local | 8761                 |
+| prod  | 8761 (컨테이너 내부) |
+
+대시보드: `http://localhost:8761`
+
+---
+
+## 🚀 로컬 실행
+
+### 사전 조건
+
+별도 인프라 의존성 없음. 단독 기동 가능.
+
+### 실행
 
 ```bash
-# 1. 빌드
-./gradlew build
-
-# 2. 컨테이너 실행
-docker-compose up --build
+./gradlew bootRun
 ```
 
-### 방법 2 — IntelliJ에서 직접 실행
-
-`EurekaserverApplication.java` 실행
-
-### 실행 확인
-
-`http://localhost:8761` 접속 → Eureka 대시보드 확인
+또는 IntelliJ 에서 `EurekaserverApplication` 실행.
 
 ---
 
-## 다른 서비스 연동 방법
-> spring cloud config server 구축 후 변경될 수 있습니다
+## 🔗 클라이언트 서비스 연동
 
-### 1. 각 마이크로서비스 의존성 추가 (`build.gradle`)
+### 의존성 (`build.gradle`)
 
 ```gradle
-ext {
-    set('springCloudVersion', "2025.0.2")
-}
-
-dependencies {
-    implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
-}
-
-dependencyManagement {
-    imports {
-        mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
-    }
-}
+implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
 ```
 
-### 2. 설정 추가 (`application.yml`)
+### 설정 (`application.yml`)
 
 ```yaml
 spring:
   application:
-    name: {서비스명}  # 예: user-service
+    name: {서비스명}  # Eureka 대시보드 식별자 - 아키텍처 문서 서비스명과 일치
 
 eureka:
   client:
     service-url:
       defaultZone: http://localhost:8761/eureka/
+    tls:
+      enabled: false
   instance:
-    prefer-ip-address: true
+    prefer-ip-address: true  # ECS Fargate 동적 IP 환경 필수
 ```
 
-> `spring.application.name`이 Eureka 대시보드에 표시되는 서비스 식별자입니다.
-> 아키텍처 문서의 서비스명과 일치시켜 주세요.
+### ECS 배포 환경변수
+
+| 환경변수                                    | 값                                                |
+| ------------------------------------------- | ------------------------------------------------- |
+| `EUREKA_CLIENT_SERVICEURL_DEFAULTZONE`      | `http://{EUREKA_SERVER_INTERNAL_IP}:8761/eureka/` |
+| `MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE` | `health,info,prometheus`                          |
 
 ---
 
-## AWS 배포 환경설정 (ECS Fargate)
-> 추후 배포 진행시 협의 후 조정될 수 있습니다.
-
-### 필수 환경변수
-
-| 환경변수 | 설명 | 예시 |
-|---|---|---|
-| `MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE` | Actuator 노출 엔드포인트 | `health,info,prometheus` |
-
-### ECS 헬스체크 설정
+## 📋 전체 스택 기동 순서
 
 ```
-경로:     /actuator/health
-포트:     8761
-프로토콜: HTTP
-```
-
-### 클라이언트 서비스 ECS 환경변수
-
-각 서비스 ECS Task에 아래 환경변수를 추가합니다.
-
-| 환경변수 | 값 |
-|---|---|
-| `EUREKA_CLIENT_SERVICEURL_DEFAULTZONE` | `http://{EUREKA_SERVER_INTERNAL_IP}:8761/eureka/` |
-
-> ECS Fargate는 컨테이너 IP가 동적으로 할당됩니다.
-> `prefer-ip-address: true` 설정이 적용되어 있으므로 별도 hostname 설정은 불필요합니다.
-
----
-
-## 기동 순서
-
-MSA 전체 스택 실행 시 아래 순서를 반드시 지켜주세요.
-
-```
-1. Eureka Server
+1. Eureka Server   (본 서비스)
 2. Config Server
 3. API Gateway
 4. 각 마이크로서비스
 ```
+
+---
+
+## 🔍 헬스체크
+
+```bash
+curl http://localhost:8761/actuator/health
+# → {"status":"UP"}
